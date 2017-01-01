@@ -1,0 +1,58 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+##### Global Config
+Vagrant.configure(2) do |config|
+  hostsfile = "config-files/hosts"
+  config.vm.network "forwarded_port", guest: 80, host: 8080, auto_correct: true
+
+  config.vm.synced_folder ".", "/vagrant", type: "nfs"
+  if Vagrant.has_plugin? "vagrant-vbguest"
+    config.vbguest.no_install  = true
+    config.vbguest.auto_update = false
+    config.vbguest.no_remote   = true
+  end
+
+  if Vagrant.has_plugin?("vagrant-cachier")
+    config.cache.auto_detect = true
+    config.cache.scope = :machine
+    config.cache.enable :yum
+    config.cache.synced_folder_opts = {
+      type: :nfs,
+      mount_options: ['rw', 'vers=3', 'tcp', 'nolock']
+    }
+  end
+
+
+  ###### Keycloak cluster
+  ###### IP Addresses
+  ipMaster = "192.168.33.10"
+  ipHost1 = "192.168.33.11"
+  ipHost2 = "192.168.33.12"
+  ipHost3 = "192.168.33.13"
+  ######
+
+  config.vm.define "kc0" do |kc0|
+    #kc0.vm.hostname = "centos-master"
+    kc0.vm.box = "centos/7"
+    # network
+    kc0.vm.network "private_network", ip: ipMaster
+    # installs
+    kc0.vm.provision :file, :source => hostsfile, :destination => "/home/vagrant/hosts"
+    kc0.vm.provision "shell", inline: "sudo mv /home/vagrant/hosts /etc/hosts"
+    kc0.vm.provision "shell", inline: "sudo sed -i '/cachedir/c\cachedir=/vagrant/tmp/yum/$basearch/$releasever' /etc/yum.conf"
+    kc0.vm.provision "shell", inline: "sudo sed -i '/keepcache/c\keepcache=1' /etc/yum.conf"
+    kc0.vm.provision "shell", inline: "sudo yum update -y"
+    kc0.vm.provision "shell", inline: "sudo yum install -y ntpdate"
+    # keycloak installation
+    #kc0.vm.provision "shell", inline: "sudo sed -i '/FLANNEL_ETCD/c\FLANNEL_ETCD=\"http://centos-master:2379\"' /etc/sysconfig/flanneld"
+    #kc0.vm.provision "shell", inline: "sudo sed -i '/FLANNEL_ETCD_KEY/c\FLANNEL_ETCD_KEY=\"/kube-centos/network\"' /etc/sysconfig/flanneld"
+    # system services
+    kc0.vm.provision "shell", inline: "sudo systemctl enable ntpdate"
+    kc0.vm.provision "shell", inline: "sudo systemctl start ntpdate"
+    kc0.vm.provision "shell", inline: "sudo setenforce 0"
+    kc0.vm.provision "shell", inline: "sudo systemctl disable firewalld"
+    kc0.vm.provision "shell", inline: "sudo systemctl stop firewalld"
+  end
+
+end
