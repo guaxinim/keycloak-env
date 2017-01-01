@@ -4,7 +4,10 @@
 ##### Global Config
 Vagrant.configure(2) do |config|
   hostsfile = "config-files/hosts"
-  config.vm.network "forwarded_port", guest: 80, host: 8080, auto_correct: true
+  vhostfile = "config-files/httpd-vhost-keycloak.conf"
+  keycloakversion = "keycloak-2.4.0.Final"
+  keycloakfile = "config-files/keycloak-2.4.0.Final.zip"
+  #config.vm.network "forwarded_port", guest: 80, host: 8080, auto_correct: true
 
   config.vm.synced_folder ".", "/vagrant", type: "nfs"
   if Vagrant.has_plugin? "vagrant-vbguest"
@@ -43,16 +46,23 @@ Vagrant.configure(2) do |config|
     kc0.vm.provision "shell", inline: "sudo sed -i '/cachedir/c\cachedir=/vagrant/tmp/yum/$basearch/$releasever' /etc/yum.conf"
     kc0.vm.provision "shell", inline: "sudo sed -i '/keepcache/c\keepcache=1' /etc/yum.conf"
     kc0.vm.provision "shell", inline: "sudo yum update -y"
-    kc0.vm.provision "shell", inline: "sudo yum install -y ntpdate"
-    # keycloak installation
-    #kc0.vm.provision "shell", inline: "sudo sed -i '/FLANNEL_ETCD/c\FLANNEL_ETCD=\"http://centos-master:2379\"' /etc/sysconfig/flanneld"
-    #kc0.vm.provision "shell", inline: "sudo sed -i '/FLANNEL_ETCD_KEY/c\FLANNEL_ETCD_KEY=\"/kube-centos/network\"' /etc/sysconfig/flanneld"
+    kc0.vm.provision "shell", inline: "sudo yum install -y ntpdate wget unzip java-1.8.0-openjdk httpd"
+    kc0.vm.provision "shell", inline: "sudo yum update -y"
     # system services
     kc0.vm.provision "shell", inline: "sudo systemctl enable ntpdate"
     kc0.vm.provision "shell", inline: "sudo systemctl start ntpdate"
     kc0.vm.provision "shell", inline: "sudo setenforce 0"
     kc0.vm.provision "shell", inline: "sudo systemctl disable firewalld"
     kc0.vm.provision "shell", inline: "sudo systemctl stop firewalld"
+    # keycloak installation
+    kc0.vm.provision :file, :source => vhostfile, :destination => "/home/vagrant/httpd-vhost-keycloak.conf"
+    kc0.vm.provision :file, :source => keycloakfile, :destination => "/home/vagrant/#{keycloakversion}.zip"
+    kc0.vm.provision "shell", inline: "sudo mv /home/vagrant/httpd* /etc/httpd/conf.d/"
+    kc0.vm.provision "shell", inline: "unzip -o /home/vagrant/#{keycloakversion}.zip -d /home/vagrant;ln -s -f #{keycloakversion} keycloak"
+    kc0.vm.provision "shell", inline: "sudo chown -R vagrant:vagrant /home/vagrant"
+    kc0.vm.provision "shell", inline: "/home/vagrant/keycloak/bin/add-user-keycloak.sh -u vagrant -p vagrant@123"
+    kc0.vm.provision "shell", inline: "nohup /home/vagrant/keycloak/bin/standalone.sh -b 0.0.0.0 & "
+    kc0.vm.provision "shell", inline: "sudo systemctl start httpd"
   end
 
 end
