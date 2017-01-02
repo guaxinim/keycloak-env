@@ -46,7 +46,7 @@ Vagrant.configure(2) do |config|
     kc0.vm.provision "shell", inline: "sudo sed -i '/cachedir/c\cachedir=/vagrant/tmp/yum/$basearch/$releasever' /etc/yum.conf"
     kc0.vm.provision "shell", inline: "sudo sed -i '/keepcache/c\keepcache=1' /etc/yum.conf"
     kc0.vm.provision "shell", inline: "sudo yum update -y"
-    kc0.vm.provision "shell", inline: "sudo yum install -y ntpdate wget unzip java-1.8.0-openjdk httpd"
+    kc0.vm.provision "shell", inline: "sudo yum install -y ntpdate wget unzip java-1.8.0-openjdk"
     kc0.vm.provision "shell", inline: "sudo yum update -y"
     # system services
     kc0.vm.provision "shell", inline: "sudo systemctl enable ntpdate"
@@ -57,14 +57,11 @@ Vagrant.configure(2) do |config|
     kc0.vm.provision "shell", inline: "sudo timedatectl set-timezone America/Sao_Paulo"
     kc0.vm.provision "shell", inline: "sudo timedatectl set-ntp yes"
     # keycloak installation
-    kc0.vm.provision :file, :source => vhostfile, :destination => "/home/vagrant/httpd-vhost-keycloak.conf"
     kc0.vm.provision :file, :source => keycloakfile, :destination => "/home/vagrant/#{keycloakversion}.zip"
-    kc0.vm.provision "shell", inline: "sudo mv /home/vagrant/httpd* /etc/httpd/conf.d/"
     kc0.vm.provision "shell", inline: "unzip -o /home/vagrant/#{keycloakversion}.zip -d /home/vagrant;ln -s -f #{keycloakversion} keycloak"
     kc0.vm.provision "shell", inline: "sudo chown -R vagrant:vagrant /home/vagrant"
-    kc0.vm.provision "shell", inline: "/home/vagrant/keycloak/bin/add-user-keycloak.sh -u vagrant -p vagrant@123"
-    kc0.vm.provision "shell", run: "always", inline: "nohup /home/vagrant/keycloak/bin/standalone.sh -b 0.0.0.0 & sleep 1"
-    kc0.vm.provision "shell", inline: "sudo systemctl start httpd"
+    kc0.vm.provision "shell", inline: "/home/vagrant/keycloak/bin/add-user-keycloak.sh -u admin -p keycloak@123"
+    kc0.vm.provision "shell", run: "always", inline: "nohup /home/vagrant/keycloak/bin/standalone.sh -b 0.0.0.0 -Djboss.server.data.dir=/vagrant/data & sleep 1"
   end
 
 end
