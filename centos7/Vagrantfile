@@ -54,6 +54,8 @@ Vagrant.configure(2) do |config|
     kc0.vm.provision "shell", inline: "sudo setenforce 0"
     kc0.vm.provision "shell", inline: "sudo systemctl disable firewalld"
     kc0.vm.provision "shell", inline: "sudo systemctl stop firewalld"
+    kc0.vm.provision "shell", inline: "sudo timedatectl set-timezone America/Sao_Paulo"
+    kc0.vm.provision "shell", inline: "sudo timedatectl set-ntp yes"
     # keycloak installation
     kc0.vm.provision :file, :source => vhostfile, :destination => "/home/vagrant/httpd-vhost-keycloak.conf"
     kc0.vm.provision :file, :source => keycloakfile, :destination => "/home/vagrant/#{keycloakversion}.zip"
@@ -61,7 +63,7 @@ Vagrant.configure(2) do |config|
     kc0.vm.provision "shell", inline: "unzip -o /home/vagrant/#{keycloakversion}.zip -d /home/vagrant;ln -s -f #{keycloakversion} keycloak"
     kc0.vm.provision "shell", inline: "sudo chown -R vagrant:vagrant /home/vagrant"
     kc0.vm.provision "shell", inline: "/home/vagrant/keycloak/bin/add-user-keycloak.sh -u vagrant -p vagrant@123"
-    kc0.vm.provision "shell", inline: "nohup /home/vagrant/keycloak/bin/standalone.sh -b 0.0.0.0 & "
+    kc0.vm.provision "shell", run: "always", inline: "nohup /home/vagrant/keycloak/bin/standalone.sh -b 0.0.0.0 & sleep 1"
     kc0.vm.provision "shell", inline: "sudo systemctl start httpd"
   end
 
