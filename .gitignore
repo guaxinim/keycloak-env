@@ -1,2 +1,3 @@
 centos7/.vagrant
 centos7/config-files/keycloak-2.4.0.Final.zip
+centos7/data/keycloak.lock.db
