@@ -7,6 +7,7 @@ Vagrant.configure(2) do |config|
   vhostfile = "config-files/httpd-vhost-keycloak.conf"
   keycloakversion = "keycloak-2.4.0.Final"
   keycloakfile = "config-files/keycloak-2.4.0.Final.zip"
+  jksfile = "config-files/keycloak.jks"
   #config.vm.network "forwarded_port", guest: 80, host: 8080, auto_correct: true
 
   config.vm.synced_folder ".", "/vagrant", type: "nfs"
@@ -61,6 +62,7 @@ Vagrant.configure(2) do |config|
     kc0.vm.provision "shell", inline: "unzip -o /home/vagrant/#{keycloakversion}.zip -d /home/vagrant;ln -s -f #{keycloakversion} keycloak"
     kc0.vm.provision "shell", inline: "sudo chown -R vagrant:vagrant /home/vagrant"
     kc0.vm.provision "shell", inline: "/home/vagrant/keycloak/bin/add-user-keycloak.sh -u admin -p keycloak@123"
+    kc0.vm.provision :file, :source => keycloakfile, :destination => "/home/vagrant/keycloak/standalone/configuration/keycloak.jks"
     kc0.vm.provision "shell", run: "always", inline: "nohup /home/vagrant/keycloak/bin/standalone.sh -b 0.0.0.0 -Djboss.server.data.dir=/vagrant/data & sleep 1"
   end
 
